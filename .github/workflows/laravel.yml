@@ -1,30 +1,57 @@
-name: Laravel
+name: Deploy Laravel to VPS
 
 on:
   push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
+    branches:
+      - main # Déploie uniquement quand on push sur main
 
 jobs:
-  laravel-tests:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: shivammathur/setup-php@15c43e89cdef867065b0213be354c2841860869e
-        with:
-          php-version: "8.0"
-      - uses: actions/checkout@v4
-      - name: Install Dependencies
-        run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
-      - name: Directory Permissions
-        run: chmod -R 777 storage bootstrap/cache
-      - name: Create Database
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Composer dependencies (prod)
+        run: composer install --no-dev --optimize-autoloader --prefer-dist
+
+      - name: Build assets
         run: |
-          mkdir -p database
-          touch database/database.sqlite
-      - name: Execute tests (Unit and Feature tests) via PHPUnit/Pest
+          npm ci
+          npm run build
+
+      - name: Prepare files for deploy
+        run: tar -czf emailing.tar.gz . --exclude=".git" --exclude="node_modules" --exclude=".env"
+
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Upload and deploy to VPS
         env:
-          DB_CONNECTION: sqlite
-          DB_DATABASE: database/database.sqlite
-        run: php artisan test
+          SSH_PASSWORD: ${{ secrets.VPS_PASSWORD }}
+          SSH_USER: ${{ secrets.VPS_USER }}
+          SSH_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no emailing.tar.gz $SSH_USER@$SSH_HOST:/tmp/
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST << 'EOF'
+            cd /var/www/emailing
+            rm -rf *
+            tar -xzf /tmp/emailing.tar.gz -C /var/www/emailing
+            rm /tmp/emailing.tar.gz
+            mv /var/www/emailing/.env.prod /var/www/emailing/.env
+
+            # Permissions
+            chown -R www-data:www-data /var/www/emailing
+            chmod -R 775 /var/www/emailing/storage /var/www/emailing/bootstrap/cache
+
+            # Clear caches
+            php artisan config:clear
+            php artisan cache:clear
+            php artisan route:clear
+            php artisan view:clear
+            php artisan migrate --force
+
+            # Redémarrage des queues
+            php artisan queue:restart
+          EOF
