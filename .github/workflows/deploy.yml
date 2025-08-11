@@ -1,0 +1,53 @@
+name: 🔐 Secure VPS CI/CD Deploy
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🧾 Checkout repository
+        uses: actions/checkout@v3
+
+      - name: 🛠️ Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y lftp openssh-client
+
+      - name: 📤 Upload via SFTP using lftp
+        run: |
+          chmod +x .github/scripts/upload.sh
+          bash .github/scripts/upload.sh
+        env:
+          HOST: ${{ secrets.VPS_HOST }}
+          USER: ${{ secrets.VPS_USER }}
+          PASSWORD: ${{ secrets.VPS_PASSWORD }}
+
+      - name: 🚀 Remote deployment via SSH
+        run: |
+          echo "📤 Upload du script de déploiement..."
+          scp -i ~/.ssh/id_ed25519 -P ${{ secrets.HOST_PORT }} .github/scripts/deploy.sh ${{ secrets.HOST_USER }}@${{ secrets.HOST_IP }}:/tmp/deploy.sh
+
+          echo "🟢 Connexion SSH et exécution du script distant..."
+          ssh -i ~/.ssh/id_ed25519 -p ${{ secrets.HOST_PORT }} ${{ secrets.HOST_USER }}@${{ secrets.HOST_IP }} <<'EOF'
+            set -euo pipefail
+
+            echo "🔐 Injection des variables d'environnement..."
+            export HOST="${{ secrets.VPS_HOST }}"
+            export USER="${{ secrets.VPS_USER }}"
+            export PASSWORD="${{ secrets.VPS_PASSWORD }}"
+
+            echo "🚀 Exécution du script de déploiement..."
+            bash /tmp/deploy.sh
+
+            echo "🧹 Suppression du script temporaire..."
+            rm -f /tmp/deploy.sh
+
+            echo "✅ Déploiement terminé avec succès."
+          EOF
+        env:
+          HOST: ${{ secrets.VPS_HOST }}
+          USER: ${{ secrets.VPS_USER }}
+          PASSWORD: ${{ secrets.VPS_PASSWORD }}
