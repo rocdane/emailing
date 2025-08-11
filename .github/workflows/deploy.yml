@@ -38,9 +38,6 @@ jobs:
 
             cd /var/www/emailing
 
-            # Copy environment file
-            mv /var/www/emailing/.env.prod /var/www/emailing/.env
-
             # Clear caches
             php artisan config:clear
             php artisan cache:clear
@@ -48,6 +45,9 @@ jobs:
             php artisan view:clear
             php artisan migrate --force
 
+            # Copy environment file
+            mv /var/www/emailing/.env.prod /var/www/emailing/.env
+            
             # Redémarrage des queues
             php artisan queue:restart
           EOF
