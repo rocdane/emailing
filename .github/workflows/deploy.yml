@@ -3,7 +3,7 @@ name: 🔐 Secure VPS CI/CD Deploy
 on:
   push:
     branches:
-      - dev
+      - main
 
 jobs:
   deploy:
