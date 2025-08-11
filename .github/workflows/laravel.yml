@@ -22,7 +22,7 @@ jobs:
           npm run build
 
       - name: Prepare files for deploy
-        run: tar -czf emailing.tar.gz .
+        run: tar -czf emailing.tar.gz . || true
 
       - name: Install sshpass
         run: sudo apt-get update && sudo apt-get install -y sshpass
