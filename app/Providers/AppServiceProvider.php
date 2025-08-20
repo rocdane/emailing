@@ -4,7 +4,11 @@ namespace App\Providers;
 
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
-use App\Services\MailService;
+use App\Services\EmailParsingService;
+use App\Services\IEmailParsingService;
+use App\Services\EmailCampaignService;
+use App\Services\IEmailCampaignService;
+
 use App\Jobs\MailingProgress;
 
 class AppServiceProvider extends ServiceProvider
@@ -14,7 +18,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(IEmailParsingService::class, EmailParsingService::class);
+
+        $this->app->bind(IEmailCampaignService::class, EmailCampaignService::class);
     }
 
     /**
@@ -22,8 +28,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $this->app->bindMethod([MailingProgress::class, 'handle'], function (MailingProgress $job, Application $app) {
-            return $job->handle($app->make(MailService::class));
-        });
+        
     }
 }

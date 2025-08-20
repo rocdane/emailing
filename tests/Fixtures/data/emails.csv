@@ -1,0 +1,7 @@
+email,first_name,last_name
+john.doe@example.com,John,Doe
+jane.smith@test.com,Jane,Smith
+user@domain.org,Test,User
+invalid-email,Invalid,Entry
+duplicate@test.com,First,Duplicate
+duplicate@test.com,Second,Duplicate

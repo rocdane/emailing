@@ -13,14 +13,19 @@ return new class extends Migration
     {
         Schema::create('emails', function (Blueprint $table) {
             $table->id();
-            $table->string('lang')->nullable();
-            $table->string('name')->nullable();
-            $table->string('address')->unique();
+            $table->foreignId('suscriber_id')->constrained()->onDelete('cascade');
             $table->string('subject');
-            $table->longText('body');
+            $table->longText('content');
+            $table->string('status')->default('pending'); // pending, sent, failed
+            $table->string('tracking_token')->unique();
+            $table->timestamp('sent_at')->nullable();
             $table->timestamps();
+
+            $table->index(['status', 'sent_at']);
+            $table->index('tracking_token');
         });
     }
+    
 
     /**
      * Reverse the migrations.

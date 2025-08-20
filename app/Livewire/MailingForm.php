@@ -17,113 +17,52 @@ class MailingForm extends Component
     public $message;
     public $submitted = false;
 
-    protected $listeners = ['submit' => 'send'];
-
-    private function getEmails(string $data): array 
+    protected function rules(): array
     {
-        $content = str_replace(["\t", "\r", "\n", "," , ";", " "], '\n', $data);
-
-        $list = array_map('trim', explode('\n', $content));
-
-        $emails = [];
-        
-        foreach ($list as $item) {
-            if (filter_var($item, FILTER_VALIDATE_EMAIL)) {
-                $emails[] = $item;
-            }
-        }
-
-        return $emails;
-    }
-
-    private function getLang(array $emails): string 
-    {
-        $lang = "";
-        
-        $extensions = [
-            '.fr' => 'fr',
-            '.de' => 'de',
-            '.it' => 'it'
+        return [
+            'file' => 'required|file|mimes:csv,txt|max:2048',
+            'subject' => 'required|string|min:3|max:255',
+            'content' => 'required|string|min:10',
+            'campaignName' => 'nullable|string|max:255',
         ];
-
-        foreach($emails as $email){
-            $domain = explode('@', $email);
-
-            $extension = strrchr(end($domain), '.');
-
-            if(array_key_exists($extension, $extensions)) {
-                $lang = $extensions[$extension];
-            }
-
-            return $lang;
-        }
-
-        return 'en';
     }
 
-    private function baseName(string $email): string
+    protected function messages(): array
     {
-        $recipient = array_map('trim', explode('@', $email));
-        
-        return $recipient[0];
+        return [
+            'file.required' => 'Veuillez sélectionner un fichier.',
+            'file.mimes' => 'Le fichier doit être au format CSV ou TXT.',
+            'file.max' => 'Le fichier ne peut pas dépasser 2MB.',
+            'subject.required' => 'Le sujet est obligatoire.',
+            'subject.min' => 'Le sujet doit contenir au moins 3 caractères.',
+            'content.required' => 'Le contenu est obligatoire.',
+            'content.min' => 'Le contenu doit contenir au moins 10 caractères.',
+        ];
     }
 
-    private function prepare(array $data)
+    public function submit(EmailCampaignService $emailCampaignService)
     {
-        $mailist = $this->getEmails($data['recipients']);
+        $this->isSubmitting = true;
         
-        $lang = $this->getLang($mailist);
+        try {
+            $this->validate();
 
-        $emails = [];
+            $campaign = $emailCampaignService->createCampaign(
+                $this->file,
+                $this->subject,
+                $this->content,
+                $this->campaignName
+            );
 
-        foreach ($mailist as $key => $email) {
-            $emails[] = [
-                'lang' => $lang,
-                'name' => $this->baseName($email),
-                'address' => $email,
-                'subject' => $data['subject'],
-                'body' => $data['body']
-            ];
+            session()->flash('success', 'Campagne créée avec succès ! L\'envoi des emails a commencé.');
+            
+            return $this->redirect(route('email-campaign.progress', ['campaign' => $campaign->id]));
+
+        } catch (\Exception $e) {
+            session()->flash('error', 'Erreur : ' . $e->getMessage());
+        } finally {
+            $this->isSubmitting = false;
         }
-
-        return $emails;
-    }
-    
-    public function send()
-    {
-        $data = $this->validate([
-            'file' => 'required|mimes:txt',
-            'subject' => 'required|min:5',
-            'message' => 'required|min:100|max:5000',
-        ]);
-
-        $file = $data['file'];
-        
-        $recipients = file_get_contents($file->getRealPath());
-
-        $emails = $this->prepare([
-            'recipients' => $recipients,
-            'subject' => $data['subject'],
-            'body' => $data['message'],
-        ]);
-
-        $jobs = [];
-    
-        foreach ($emails as $index => $email) 
-        {
-            $delay = now()->addSeconds($index * 5);
-            $jobs[] = (new MailingProgress($email))->delay($delay);
-        }
-
-        $batch = Bus::batch($jobs)->dispatch();
-
-        if(!is_null($batch)){
-            Cache::put('mailing_batch_id', $batch->id);
-        }else{
-            Cache::put('mailing_batch_id', 0);
-        }
-
-        return to_route('mailing')->with('success', 'Mailing processed successfully.');
     }
 
     public function render()

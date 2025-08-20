@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Email;
-use App\Models\Tracker;
+use App\Services\IEmailCampaignService;
 
 class HomeController extends Controller
 {
+    public function __construct(private IEmailCampaignService $emailCampaignService)
+    {}
+
     public function dashboard()
     {
         $dashboard = $this->report();
@@ -27,19 +30,14 @@ class HomeController extends Controller
 
     private function report()
     {
-        $sent = Tracker::where('sent', true)->count();
+        $sent = Email::where('status', 'sent')->count();
 
-        $opened = Tracker::where('opened', true)->count();
+        $opened = Email::where('status', 'opened')->count();
 
-        $clicks = Tracker::where('clicks', true)->count();
+        $clicks = Email::where('status', 'clicked')->count();
 
-        $unsubscribed = Tracker::where('unsubscribed', true)->count();
+        $unsubscribed = Email::where('status', 'unsuscribed')->count();
 
-        $stats = Email::selectRaw('lang, COUNT(*) as email_count')
-            ->groupBy('lang')
-            ->pluck('email_count', 'lang')
-            ->toArray();
-        
         $emails = Email::all()->count();
         
         return json_decode(json_encode([
@@ -47,7 +45,6 @@ class HomeController extends Controller
             'opened' => $opened,
             'clicks' => $clicks,
             'unsubscribed' => $unsubscribed,
-            'stats' => $stats,
             'emails' => $emails
         ]));
     }

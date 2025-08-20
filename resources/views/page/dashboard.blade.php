@@ -33,13 +33,6 @@
                                     <div class="col-md-6 col-xl-7">
                                         <div class="table-responsive mb-3 mb-md-0">
                                             <table class="table table-borderless report-table">
-                                                @foreach ($dashboard->stats as $lang => $count)
-                                                    @include('shared.stats',[
-                                                        'name'=>$lang,
-                                                        'value'=>$count, 
-                                                        'percent'=> 100 * $count/$dashboard->emails
-                                                    ])
-                                                @endforeach
                                             </table>
                                         </div>
                                     </div>
