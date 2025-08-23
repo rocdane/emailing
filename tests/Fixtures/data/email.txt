@@ -1,5 +1,0 @@
-john@example.com
-jane@test.com
-user@domain.org
-admin@site.com
-contact@company.fr

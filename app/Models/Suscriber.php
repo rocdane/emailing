@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Suscriber extends Model
 {
+    use HasFactory;
+    
     protected $fillable = [
         'email',
         'lang',

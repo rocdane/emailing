@@ -4,7 +4,7 @@ namespace App\Jobs;
 
 use App\Events\EmailSent;
 use App\Events\EmailFailed;
-use App\Mail\CampaignEmail;
+use App\Mail\Letter;
 use App\Models\Email;
 use App\Models\EmailMeta;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -26,35 +26,24 @@ class SendSingleEmailJob implements ShouldQueue
     public function handle(): void
     {
         try {
-            // Envoyer l'email
-            Mail::to($this->email->subscriber->email)
-                ->send(new CampaignEmail($this->email));
+            Mail::to($this->email->subscriber->email)->send(new Letter($this->email));
 
-            // Marquer comme envoyé
             $this->email->markAsSent();
             
-            // Tracker la livraison
-            EmailMeta::trackDelivered($this->email, [
-                'sent_at' => now()->toISOString(),
-            ]);
+            EmailMeta::trackDelivered($this->email, [ 'sent_at' => now()->toISOString(),]);
 
-            // Incrémenter le compteur de la campagne
             $this->email->campaign->incrementSent();
 
-            // Déclencher l'event
-            EmailSent::dispatch($this->email);
+            EmailSent::dispatch($this->email, 'Email sent successfully.');
 
         } catch (Exception $e) {
-            // Marquer comme échoué
             $this->email->markAsFailed();
-            
-            // Incrémenter le compteur d'échecs
+        
             $this->email->campaign->incrementFailed();
 
-            // Déclencher l'event d'échec
             EmailFailed::dispatch($this->email, $e->getMessage());
 
-            throw $e; // Relancer pour les retry automatiques
+            throw $e;
         }
     }
 }

@@ -119,5 +119,4 @@ class EmailParsingService
         return $emails;
     }
     
-    
 }

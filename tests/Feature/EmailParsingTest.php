@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Services\EmailParsingService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\App;
 use Tests\TestCase;
 
 class EmailParsingTest extends TestCase
@@ -14,7 +15,7 @@ class EmailParsingTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new EmailParsingService();
+        $this->service = app(EmailParsingService::class);
     }
 
     public function test_can_parse_csv_file(): void

@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('emails', function (Blueprint $table) {
             $table->id();
             $table->foreignId('suscriber_id')->constrained()->onDelete('cascade');
+            $table->foreignId('email_campaign_id')->nullable();
             $table->string('subject');
             $table->longText('content');
             $table->string('status')->default('pending'); // pending, sent, failed

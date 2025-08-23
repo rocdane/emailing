@@ -49,7 +49,7 @@ class EmailTrackingController extends Controller
                 'clicked_at' => now()->toISOString(),
             ]);
 
-            return redirect($originalUrl);
+            return response('Lien valide', 201);
         }
 
         return response('Lien invalide', 404);
@@ -68,7 +68,7 @@ class EmailTrackingController extends Controller
                 'clicked_at' => now()->toISOString(),
             ]);
 
-            return redirect($originalUrl);
+            return response('Lien valide', 200);
         }
 
         return response('Lien invalide', 404);

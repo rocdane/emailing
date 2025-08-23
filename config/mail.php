@@ -37,11 +37,11 @@ return [
 
     'mailers' => [
 
-        'mailers' => [
+        /*'mailers' => [
             'mailersend' => [
                 'transport' => 'mailersend',
             ],
-        ],
+        ],*/
 
         'smtp' => [
             'transport' => 'smtp',

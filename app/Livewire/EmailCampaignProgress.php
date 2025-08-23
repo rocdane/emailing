@@ -30,7 +30,6 @@ class EmailCampaignProgress extends Component
 
     public function updateStats(EmailCampaignService $emailCampaignService = null)
     {
-        // Recharger la campagne depuis la DB
         $this->campaign = $this->campaign->fresh();
         
         if (!$emailCampaignService) {

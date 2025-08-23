@@ -16,7 +16,8 @@ class EmailSent implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public function __construct(
-        public Email $email
+        public Email $email,
+        public string $successMessage
     ) {}
 
     public function broadcastOn(): array

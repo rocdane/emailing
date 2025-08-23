@@ -17,16 +17,12 @@ class ProcessEmailCampaignJob implements ShouldQueue
 
     public function handle(): void
     {
-        // Marquer la campagne comme en cours
         $this->campaign->update(['status' => 'processing']);
         
-        // Déclencher l'event de début de campagne
         EmailCampaignStarted::dispatch($this->campaign);
 
-        // Récupérer tous les emails de la campagne
         $emails = $this->campaign->emails()->pending()->get();
 
-        // Dispatcher un job pour chaque email
         foreach ($emails as $email) {
             SendSingleEmailJob::dispatch($email);
         }

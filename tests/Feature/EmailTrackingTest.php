@@ -15,6 +15,7 @@ class EmailTrackingTest extends TestCase
     public function test_pixel_tracking_works(): void
     {
         $suscriber = Suscriber::create(['email' => 'test@example.com']);
+
         $email = Email::create([
             'suscriber_id' => $suscriber->id,
             'subject' => 'Test',
@@ -23,11 +24,9 @@ class EmailTrackingTest extends TestCase
         ]);
 
         $response = $this->get(route('email.tracking.pixel', ['token' => $email->tracking_token]));
-
         $response->assertSuccessful();
         $response->assertHeader('content-type', 'image/gif');
 
-        // Vérifier que le tracking a été enregistré
         $this->assertTrue($email->metas()->where('type', 'opened')->exists());
     }
 
@@ -41,7 +40,7 @@ class EmailTrackingTest extends TestCase
             'status' => 'sent',
         ]);
 
-        $originalUrl = 'https://example.com';
+        $originalUrl = 'http://localhost';
         $encodedUrl = base64_encode($originalUrl);
 
         $response = $this->get(route('email.tracking.click', [
@@ -51,7 +50,6 @@ class EmailTrackingTest extends TestCase
 
         $response->assertRedirect($originalUrl);
 
-        // Vérifier que le tracking a été enregistré
         $this->assertTrue($email->metas()->where('type', 'clicked')->exists());
         
         $clickMeta = $email->metas()->where('type', 'clicked')->first();
@@ -61,6 +59,7 @@ class EmailTrackingTest extends TestCase
     public function test_email_meta_tracking_methods(): void
     {
         $suscriber = Suscriber::create(['email' => 'test@example.com']);
+
         $email = Email::create([
             'suscriber_id' => $suscriber->id,
             'subject' => 'Test',
@@ -68,16 +67,13 @@ class EmailTrackingTest extends TestCase
             'status' => 'sent',
         ]);
 
-        // Test delivered tracking
         EmailMeta::trackDelivered($email, ['test' => 'data']);
         $this->assertTrue($email->metas()->where('type', 'delivered')->exists());
 
-        // Test opened tracking
         EmailMeta::trackOpened($email, ['ip' => '127.0.0.1']);
         $this->assertTrue($email->metas()->where('type', 'opened')->exists());
 
-        // Test clicked tracking
-        EmailMeta::trackClicked($email, ['url' => 'https://example.com']);
+        EmailMeta::trackClicked($email, ['url' => 'http://localhost']);
         $this->assertTrue($email->metas()->where('type', 'clicked')->exists());
     }
 }

@@ -3,9 +3,10 @@
 namespace Tests\Feature;
 
 use App\Jobs\ProcessEmailCampaignJob;
+use App\Services\EmailCampaignService;
 use App\Models\EmailCampaign;
 use App\Models\Suscriber;
-use App\Services\EmailCampaignService;
+
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
@@ -20,20 +21,19 @@ class EmailCampaignTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
         Storage::fake('local');
         Queue::fake();
     }
 
     public function test_can_create_email_campaign_with_csv_file(): void
     {
-        // Créer un fichier CSV de test directement
         $csvContent = "test1@example.com\ntest2@example.com\ntest3@example.com";
+        
         $file = UploadedFile::fake()->createWithContent('emails.csv', $csvContent);
 
-        $service = app(EmailCampaignService::class);
+        $emailCampaignService = app(EmailCampaignService::class);
 
-        $campaign = $service->createCampaign(
+        $campaign = $emailCampaignService->createCampaign(
             $file,
             'Test Subject',
             'Test Content',
@@ -46,55 +46,49 @@ class EmailCampaignTest extends TestCase
         $this->assertEquals('Test Content', $campaign->content);
         $this->assertEquals(3, $campaign->total_emails);
 
-        // Vérifier que les subscribers ont été créés
-        $this->assertEquals(3, Subscriber::count());
+        $this->assertEquals(3, Suscriber::count());
         
-        // Vérifier que les emails ont été créés
         $this->assertEquals(3, $campaign->emails()->count());
 
-        // Vérifier que le job a été dispatché
         Queue::assertPushed(ProcessEmailCampaignJob::class);
     }
 
     public function test_duplicate_emails_are_handled_correctly(): void
     {
-        // Créer un suscriber existant
         Suscriber::create(['email' => 'test1@example.com']);
+
 
         $csvContent = "test1@example.com\ntest2@example.com\ntest1@example.com";
         $file = UploadedFile::fake()->createWithContent('emails.csv', $csvContent);
 
-        $service = app(EmailCampaignService::class);
-        $campaign = $service->createCampaign($file, 'Subject', 'Content');
+        $emailCampaignService = app(EmailCampaignService::class);
+        $campaign = $emailCampaignService->createCampaign($file, 'Subject', 'Content');
 
-        // Seuls 2 subscribers uniques doivent exister
-        $this->assertEquals(2, Subscriber::count());
-        $this->assertEquals(3, $campaign->total_emails); // Mais 3 emails créés
+        $this->assertEquals(2, Suscriber::count());
+
+        $this->assertEquals(2, $campaign->total_emails);
     }
 
     public function test_invalid_file_throws_exception(): void
     {
         $this->expectException(ValidationException::class);
 
-        // Créer un fichier PDF invalide
         $file = UploadedFile::fake()->create('test.pdf', 100, 'application/pdf');
         
-        $service = app(EmailCampaignService::class);
-        
-        $service->createCampaign($file, 'Subject', 'Content');
+        $emailCampaignService = app(EmailCampaignService::class);
+        $emailCampaignService->createCampaign($file, 'Subject', 'Content');
     }
 
     public function test_empty_file_throws_exception(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+
         $this->expectExceptionMessage('Aucun email valide trouvé dans le fichier.');
 
-        // Créer un fichier CSV vide
         $file = UploadedFile::fake()->createWithContent('empty.csv', '');
         
-        $service = app(EmailCampaignService::class);
-        
-        $service->createCampaign($file, 'Subject', 'Content');
+        $emailCampaignService = app(EmailCampaignService::class);
+        $emailCampaignService->createCampaign($file, 'Subject', 'Content');
     }
 
     public function test_file_with_invalid_emails_only(): void
@@ -102,13 +96,11 @@ class EmailCampaignTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Aucun email valide trouvé dans le fichier.');
 
-        // Créer un fichier avec seulement des emails invalides
         $csvContent = "not-an-email\ninvalid@\n@missing.com";
         $file = UploadedFile::fake()->createWithContent('invalid.csv', $csvContent);
         
-        $service = app(EmailCampaignService::class);
-        
-        $service->createCampaign($file, 'Subject', 'Content');
+        $emailCampaignService = app(EmailCampaignService::class);
+        $emailCampaignService->createCampaign($file, 'Subject', 'Content');
     }
 
     public function test_campaign_progress_tracking(): void
@@ -131,7 +123,6 @@ class EmailCampaignTest extends TestCase
         $this->assertEquals(2, $campaign->failed_emails);
     }
 
-    // Méthodes helper pour créer des fichiers de test
     protected function createTestCsvFile(array $emails): UploadedFile
     {
         $content = implode("\n", $emails);

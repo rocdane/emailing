@@ -4,6 +4,8 @@ namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use App\Models\Email;
+use App\Models\Suscriber;
+use Illuminate\Support\Str;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Email>
@@ -18,7 +20,7 @@ class EmailFactory extends Factory
     public function definition(): array
     {
         return [
-            'suscriber_id' => Subscriber::factory(),
+            'suscriber_id' => Suscriber::factory(),
             'subject' => fake()->sentence(6),
             'content' => fake()->paragraphs(3),
             'status' => fake()->randomElement(['pending', 'sent', 'failed']),

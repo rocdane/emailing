@@ -1,5 +1,8 @@
-<div class="container">
-    <form wire:submit.prevent="suscribe" class="form-horizontal">
+<x-layouts.app>
+    <x-slot name="title">Suscribe</x-slot>
+
+    <div class="flex items-center justify-center min-h-screen">
+        <form wire:submit.prevent="suscribe" class="form-horizontal">
 
         @include('shared.input',['label'=>'Email address', 'name'=>'email'])
 
@@ -7,4 +10,5 @@
             Suscribe
         </button>
     </form>
-</div>
+    </div>
+</x-layouts.app>

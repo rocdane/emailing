@@ -4,9 +4,7 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use Livewire\WithFileUploads;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Bus;
-use App\Jobs\MailingProgress;
+use App\Services\EmailCampaignService;
 
 class MailingForm extends Component
 {
@@ -14,8 +12,9 @@ class MailingForm extends Component
 
     public $file;
     public $subject;
-    public $message;
-    public $submitted = false;
+    public $content;
+    public $campaignName;
+    public $isSubmitting = false;
 
     protected function rules(): array
     {
@@ -54,9 +53,11 @@ class MailingForm extends Component
                 $this->campaignName
             );
 
-            session()->flash('success', 'Campagne créée avec succès ! L\'envoi des emails a commencé.');
+            event(new EmailCampaignStarted($campaign));
+
+            session()->flash('success', "Campagne créée avec succès ! L'envoi des emails a commencé.");
             
-            return $this->redirect(route('email-campaign.progress', ['campaign' => $campaign->id]));
+            return $this->redirect(route('email.campaign.progress', ['campaign' => $campaign->id]));
 
         } catch (\Exception $e) {
             session()->flash('error', 'Erreur : ' . $e->getMessage());

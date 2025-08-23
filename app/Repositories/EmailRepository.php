@@ -5,9 +5,9 @@ namespace App\Repositories;
 use App\Models\Email;
 use App\Models\EmailCampaign;
 use App\Models\Suscriber;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection;
 
-class EmailRepository implements EmailRepositoryInterface
+class EmailRepository
 {
     public function createBulkEmails(
         Collection $suscribers,
@@ -18,7 +18,7 @@ class EmailRepository implements EmailRepositoryInterface
         $emails = collect();
 
         foreach ($suscribers as $suscriber) {
-            $email = Email::create([
+            $email = Email::factory()->create([
                 'suscriber_id' => $suscriber->id,
                 'email_campaign_id' => $campaign->id,
                 'subject' => $subject,
@@ -35,6 +35,11 @@ class EmailRepository implements EmailRepositoryInterface
     public function getPendingEmails(): Collection
     {
         return Email::pending()->with('suscriber')->get();
+    }
+
+    public function getSentEmails(): Collection
+    {
+        return Email::sent()->with('suscriber')->get();
     }
 
     public function findByTrackingToken(string $token): ?Email
