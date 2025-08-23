@@ -5,6 +5,7 @@ namespace App\Livewire;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use App\Services\EmailCampaignService;
+use App\Events\EmailCampaignStarted;
 
 class MailingForm extends Component
 {

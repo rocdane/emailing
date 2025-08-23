@@ -1,4 +1,4 @@
-<x-layouts.app>
+
     <div class="max-w-3xl mx-auto">
         <div class="bg-white shadow rounded-lg">
             <div class="px-4 py-5 sm:p-6">
@@ -68,9 +68,8 @@
                         @enderror
                     </div>
 
-                    <!-- Sujet -->
+                     <!-- Sujet -->
                     <div>
-                        @include('shared.input',['label'=>'Subject', 'name'=>'subject'])
                         <label for="subject" class="block text-sm font-medium text-gray-700">
                             Sujet de l'email *
                         </label>
@@ -122,4 +121,3 @@
             </div>
         </div>
     </div>
-</x-layouts.app>

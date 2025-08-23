@@ -1,4 +1,4 @@
-<x-layouts.app>
+<section title="Email Campaign Progress">
     <div class="max-w-4xl mx-auto">
         <div class="bg-white shadow rounded-lg">
             <div class="px-4 py-5 sm:p-6">
@@ -102,4 +102,4 @@
         @endif
     </script>
     @endpush
-</x-layouts.app>
+</section>

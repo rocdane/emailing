@@ -37,6 +37,7 @@ class EmailSent implements ShouldBroadcast
             'sent_emails' => $campaign->sent_emails,
             'total_emails' => $campaign->total_emails,
             'progress_percentage' => $campaign->progress_percentage,
+            'success' => $this->successMessage,
         ];
     }
 }
