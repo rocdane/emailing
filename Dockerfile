@@ -1,37 +1,54 @@
-# Étape de construction
-FROM composer:2.7 as builder
+# -------------------------------
+# Dockerfile Laravel 12 - PHP 8.3 + Node.js + Redis
+# -------------------------------
 
-WORKDIR /app
-COPY . .
-RUN composer install --prefer-dist --no-dev --optimize-autoloader --no-interaction
+# 1. Image de base PHP avec extensions nécessaires
+FROM php:8.3-fpm
 
-# Étape d'exécution
-FROM php:8.3-fpm-alpine
+# 2. Installer les dépendances système
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    zip \
+    unzip \
+    libzip-dev \
+    libonig-dev \
+    libpng-dev \
+    libxml2-dev \
+    libicu-dev \
+    libpq-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    npm \
+    && docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd xml intl zip
 
+# 3. Installer Redis PHP extension
+RUN pecl install redis && docker-php-ext-enable redis
+
+# 4. Installer Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# 5. Définir le répertoire de travail
 WORKDIR /var/www/html
 
-# Installer les dépendances système
-RUN apk add --no-cache nginx supervisor libpng-dev libzip-dev zip unzip mysql-client nodejs npm
-
-# Installer les extensions PHP
-RUN docker-php-ext-install pdo pdo_mysql gd zip bcmath
-
-# Configurer Nginx et PHP-FPM
-COPY docker/nginx.conf /etc/nginx/nginx.conf
-COPY docker/fpm-pool.conf /usr/local/etc/php-fpm.d/www.conf
-COPY docker/php.ini /usr/local/etc/php/conf.d/custom.ini
-COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
-# Copier l'application
-COPY --from=builder /app .
+# 6. Copier les fichiers du projet
 COPY . .
 
-# Configurer les permissions
-RUN chown -R www-data:www-data /var/www/html/storage
-RUN chown -R www-data:www-data /var/www/html/bootstrap/cache
+# 7. Installer les dépendances PHP et Node.js
+RUN composer install --prefer-dist --no-interaction --optimize-autoloader \
+    && npm ci \
+    && npm run build
 
-# Installer les dépendances frontend et compiler les assets
-RUN npm install && npm run build
+# 8. Copier l’exemple d’environnement
+RUN cp .env.example .env \
+    && php artisan key:generate
 
-EXPOSE 80
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# 9. Permissions des dossiers storage et bootstrap
+RUN mkdir -p storage/framework/{sessions,views,cache} \
+    && chmod -R 777 storage bootstrap/cache
+
+# 10. Exposer le port PHP-FPM
+EXPOSE 9000
+
+# 11. Commande par défaut pour PHP-FPM
+CMD ["php-fpm"]
