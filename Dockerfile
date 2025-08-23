@@ -6,21 +6,7 @@
 FROM php:8.3-fpm
 
 # 2. Installer les dépendances système
-RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    zip \
-    unzip \
-    libzip-dev \
-    libonig-dev \
-    libpng-dev \
-    libxml2-dev \
-    libicu-dev \
-    libpq-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    npm \
-    && docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd xml intl zip
+RUN apt-get update && apt-get install -y git curl zip unzip libzip-dev libonig-dev libpng-dev libxml2-dev libicu-dev libpq-dev libjpeg-dev libfreetype6-dev npm && docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd xml intl zip
 
 # 3. Installer Redis PHP extension
 RUN pecl install redis && docker-php-ext-enable redis
@@ -35,17 +21,13 @@ WORKDIR /var/www/html
 COPY . .
 
 # 7. Installer les dépendances PHP et Node.js
-RUN composer install --prefer-dist --no-interaction --optimize-autoloader \
-    && npm ci \
-    && npm run build
+RUN composer install --prefer-dist --no-interaction --optimize-autoloader && npm ci && npm run build
 
 # 8. Copier l’exemple d’environnement
-RUN cp .env.example .env \
-    && php artisan key:generate
+RUN cp .env.example .env && php artisan key:generate
 
 # 9. Permissions des dossiers storage et bootstrap
-RUN mkdir -p storage/framework/{sessions,views,cache} \
-    && chmod -R 777 storage bootstrap/cache
+RUN mkdir -p storage/framework/{sessions,views,cache} && chmod -R 777 storage bootstrap/cache
 
 # 10. Exposer le port PHP-FPM
 EXPOSE 9000
