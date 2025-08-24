@@ -1,53 +1,109 @@
-name: 🔐 Secure VPS CI/CD Deploy
+name: Deploy Laravel to VPS
 
 on:
   push:
     branches:
-      - main
+      - production
+  workflow_dispatch:
+
+env:
+  LARAVEL_ENV: production
+  APP_NAME: "emailing app"
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🧾 Checkout repository
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: 🛠️ Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y lftp sshpass
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, pdo, pdo_mysql, xml, ctype, json, tokenizer, gd
+          coverage: none
 
-      - name: 📤 Upload via SFTP using lftp
+      - name: Copy environment file
+        run: cp .env.example .env
+
+      - name: Install dependencies
+        run: composer install --no-dev --prefer-dist --optimize-autoloader
+
+      - name: Generate application key
+        run: php artisan key:generate --show
+
+      - name: Build assets (if using Vite)
         run: |
-          chmod +x .github/scripts/upload.sh
-          bash .github/scripts/upload.sh
-        env:
-          HOST: ${{ secrets.VPS_HOST }}
-          USER: ${{ secrets.VPS_USER }}
-          PASSWORD: ${{ secrets.VPS_PASSWORD }}
+          npm ci --silent
+          npm run build --silent
 
-      - name: 🚀 Remote deployment via SSH
-        env:
-          SSH_PASSWORD: ${{ secrets.VPS_PASSWORD }}
-          SSH_USER: ${{ secrets.VPS_USER }}
-          SSH_HOST: ${{ secrets.VPS_HOST }}
+      - name: Create deployment archive
         run: |
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST << 'EOF'
-            # Permissions
-            chown -R www-data:www-data /var/www/emailing
-            chmod -R 775 /var/www/emailing/storage /var/www/emailing/bootstrap/cache  
+          mkdir -p deployment
+          rsync -av --delete \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='node_modules' \
+            --exclude='storage/*' \
+            --exclude='tests' \
+            --exclude='.env' \
+            --exclude='deployment' \
+            ./ deployment/
 
-            cd /var/www/emailing
+          tar -czf deployment.tar.gz deployment/
 
-            # Clear caches
-            php artisan config:clear
-            php artisan cache:clear
-            php artisan route:clear
-            php artisan view:clear
-            php artisan migrate --force
+      - name: Déterminer la méthode d'authentification
+        id: auth-method
+        run: |
+          if [ -n "${{ secrets.VPS_PASSWORD }}" ]; then
+            echo "METHOD=password" >> $GITHUB_OUTPUT
+          else
+            echo "METHOD=key" >> $GITHUB_OUTPUT
+          fi
 
-            # Copy environment file
-            mv /var/www/emailing/.env.prod /var/www/emailing/.env
-            
-            # Redémarrage des queues
-            php artisan queue:restart
-          EOF
+      - name: Deploy to VPS avec SCP
+        if: steps.auth-method.outputs.METHOD == 'key'
+        uses: appleboy/scp-action@v0.1.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_PRIVATE_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          source: "deployment.tar.gz"
+          target: "/tmp/"
+
+      - name: Deploy to VPS avec mot de passe
+        if: steps.auth-method.outputs.METHOD == 'password'
+        run: |
+          sshpass -p "${{ secrets.VPS_PASSWORD }}" scp \
+            -o StrictHostKeyChecking=no \
+            -P ${{ secrets.VPS_PORT }} \
+            deployment.tar.gz \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/
+
+      - name: Execute deployment script on server (Clé SSH)
+        if: steps.auth-method.outputs.METHOD == 'key'
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_PRIVATE_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            $(curl -s https://raw.githubusercontent.com/your-username/your-repo/main/remote-deploy.sh)
+
+      - name: Execute deployment script on server (Mot de passe)
+        if: steps.auth-method.outputs.METHOD == 'password'
+        run: |
+          sshpass -p "${{ secrets.VPS_PASSWORD }}" ssh \
+            -o StrictHostKeyChecking=no \
+            -p ${{ secrets.VPS_PORT }} \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            'bash -s' < remote-deploy.sh
+
+      - name: Cleanup
+        run: rm -rf deployment deployment.tar.gz
