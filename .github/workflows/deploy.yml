@@ -3,7 +3,7 @@ name: Deploy Laravel to VPS
 on:
   push:
     branches:
-      - production
+      - prod
   workflow_dispatch:
 
 env:
