@@ -21,7 +21,7 @@ WORKDIR /var/www/html
 COPY . .
 
 # 7. Installer les dépendances PHP et Node.js
-RUN composer install --prefer-dist --no-interaction --optimize-autoloader
+RUN composer install --prefer-dist --no-interaction --optimize-autoloader --verbose --no-dev 
 RUN npm ci && npm run build
 
 # 8. Copier l’exemple d’environnement

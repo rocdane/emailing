@@ -38,7 +38,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          composer install --prefer-dist --no-interaction
+          composer install --prefer-dist --no-interaction 
           npm ci
           npm run build
 
