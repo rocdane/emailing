@@ -6,24 +6,14 @@
 FROM php:8.3-fpm
 
 # 2. Installer les dépendances système
-RUN apt-get update && apt-get install -y git curl zip unzip libzip-dev libonig-dev libpng-dev libxml2-dev libicu-dev libpq-dev libjpeg-dev libfreetype6-dev nodejs npm && docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd xml intl zip
+RUN apt-get update && apt-get install -y git curl zip unzip libzip-dev libonig-dev libpng-dev libxml2-dev libicu-dev libpq-dev libjpeg-dev libfreetype6-dev nodejs npm 
+RUN docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd xml intl zip
 
 
 # 3. Installation des extensions PHP (incluant sockets)
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-configure intl \
-    && docker-php-ext-install \
-    pdo_mysql \
-    mbstring \
-    exif \
-    pcntl \
-    bcmath \
-    gd \
-    zip \
-    intl \
-    opcache \
-    sockets \
-    sodium
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp 
+RUN docker-php-ext-configure intl
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip intl opcache sockets sodium
 
 RUN pecl install redis && docker-php-ext-enable redis
 
