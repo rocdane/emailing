@@ -40,7 +40,6 @@ COPY . .
 # 7. Installer les dépendances PHP et Node.js
 RUN composer install --prefer-dist --no-interaction --optimize-autoloader --no-dev --verbose
 RUN npm ci && npm run build
-RUN npm ci --only=production && npm run build
 
 # 8. Copier l’exemple d’environnement
 RUN cp .env.example .env && php artisan key:generate
