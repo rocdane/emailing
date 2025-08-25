@@ -6,14 +6,25 @@
 FROM php:8.3-fpm
 
 # 2. Installer les dépendances système
-RUN apt-get update && apt-get install -y git curl zip unzip libzip-dev libonig-dev libpng-dev libxml2-dev libicu-dev libpq-dev libjpeg-dev libfreetype6-dev nodejs npm 
-RUN docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd xml intl zip
+RUN apt-get update && apt-get install -y git curl zip unzip libzip-dev libonig-dev libpng-dev libxml2-dev libicu-dev libpq-dev libjpeg-dev libfreetype6-dev libwebp-dev libsodium-dev nodejs npm pkg-config
+RUN rm -rf /var/lib/apt/lists/*
 
+# Your existing Dockerfile content above...
 
-# 3. Installation des extensions PHP (incluant sockets)
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip intl opcache sockets sodium
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp 
+# Configure GD extension first
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp
+
+# Configure intl extension
 RUN docker-php-ext-configure intl
+
+# Install PHP extensions (split into logical groups for better caching)
+RUN docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath xml zip intl opcache sockets
+
+# Install GD extension separately after configuration
+RUN docker-php-ext-install gd
+
+# Install sodium extension separately
+RUN docker-php-ext-install sodium
 
 RUN pecl install redis && docker-php-ext-enable redis
 
@@ -25,8 +36,6 @@ WORKDIR /var/www/html
 
 # 6. Copier les fichiers du projet
 COPY . .
-
-RUN docker-php-ext-install sockets
 
 # 7. Installer les dépendances PHP et Node.js
 RUN composer install --prefer-dist --no-interaction --optimize-autoloader --no-dev --verbose
