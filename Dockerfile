@@ -11,9 +11,9 @@ RUN docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd xml intl 
 
 
 # 3. Installation des extensions PHP (incluant sockets)
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip intl opcache sockets sodium
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp 
 RUN docker-php-ext-configure intl
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip intl opcache sockets sodium
 
 RUN pecl install redis && docker-php-ext-enable redis
 
